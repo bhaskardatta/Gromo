@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 import { logger } from '../utils/logger';
 import { config } from '../config/config';
 import { apiKeyRotationService } from '../services/apiKeyRotationService';
@@ -23,7 +23,7 @@ interface JWTPayload {
 /**
  * JWT Authentication Middleware
  */
-export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+export function authenticateToken(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
         const authHeader = req.headers['authorization'];
         const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
@@ -48,33 +48,21 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
             return;
         }
 
-        jwt.verify(token, jwtSecret, (err, decoded) => {
-            if (err) {
-                logger.warn('JWT verification failed', { error: err.message });
-                res.status(403).json({
-                    success: false,
-                    error: 'Invalid or expired token',
-                    code: 'TOKEN_INVALID'
-                });
-                return;
-            }
+        const decoded = jwt.verify(token, config.getSecurity().jwtSecret) as JwtPayload;
 
-            const payload = decoded as JWTPayload;
-            req.user = {
-                id: payload.id,
-                email: payload.email,
-                role: payload.role
-            };
+        req.user = {
+            id: decoded.id,
+            email: decoded.email,
+            role: decoded.role
+        };
 
-            logger.info('User authenticated', { userId: req.user.id, role: req.user.role });
-            next();
-        });
-    } catch (error) {
-        logger.error('Authentication middleware error', error);
-        res.status(500).json({
+        logger.info('User authenticated', { userId: req.user.id, role: req.user.role });
+        next();
+    } catch (err) {
+        return res.status(401).json({
             success: false,
-            error: 'Authentication error',
-            code: 'AUTH_ERROR'
+            error: 'Invalid or expired token',
+            code: 'INVALID_TOKEN'
         });
     }
 };

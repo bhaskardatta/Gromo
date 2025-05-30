@@ -1,0 +1,81 @@
+{
+  "users": [
+    {
+      "id": "user-123",
+      "email": "test@example.com",
+      "password": "password123",
+      "role": "adjuster",
+      "firstName": "John",
+      "lastName": "Doe",
+      "permissions": ["view_claims", "edit_claims", "approve_claims"]
+    },
+    {
+      "id": "user-124",
+      "email": "adjuster@example.com",
+      "password": "password123",
+      "role": "adjuster",
+      "firstName": "Jane",
+      "lastName": "Smith",
+      "permissions": ["view_claims", "edit_claims", "approve_claims"]
+    },
+    {
+      "id": "user-125",
+      "email": "admin@example.com",
+      "password": "password123",
+      "role": "admin",
+      "firstName": "Admin",
+      "lastName": "User",
+      "permissions": ["view_claims", "edit_claims", "approve_claims", "admin_access", "manage_users"]
+    },
+    {
+      "id": "user-126",
+      "email": "customer@example.com",
+      "password": "password123",
+      "role": "customer",
+      "firstName": "Customer",
+      "lastName": "User",
+      "permissions": ["view_own_claims", "create_claims"]
+    }
+  ],
+  "claims": [
+    {
+      "id": "claim-001",
+      "claimNumber": "CLM-2024-001",
+      "policyNumber": "POL-12345",
+      "customerId": "user-126",
+      "status": "pending",
+      "amount": 50000,
+      "incidentDate": "2024-01-15",
+      "incidentType": "Vehicle Accident",
+      "incidentLocation": "Mumbai, Maharashtra",
+      "description": "Minor collision at traffic signal",
+      "createdAt": "2024-01-16T10:00:00Z",
+      "updatedAt": "2024-01-16T10:00:00Z",
+      "documents": [
+        {
+          "id": "doc-001",
+          "type": "Accident Report",
+          "filename": "accident-report.pdf",
+          "uploadedAt": "2024-01-16T10:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "claim-002",
+      "claimNumber": "CLM-2024-002",
+      "policyNumber": "POL-67890",
+      "customerId": "user-126",
+      "status": "approved",
+      "amount": 75000,
+      "settlementAmount": 70000,
+      "incidentDate": "2024-01-10",
+      "incidentType": "Property Damage",
+      "incidentLocation": "Delhi, India",
+      "description": "Water damage due to pipe burst",
+      "createdAt": "2024-01-11T09:00:00Z",
+      "updatedAt": "2024-01-20T14:30:00Z",
+      "approvedAt": "2024-01-20T14:30:00Z",
+      "documents": []
+    }
+  ]
+}

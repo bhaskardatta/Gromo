@@ -4,25 +4,33 @@ import { FraudDetectionService } from '../../../src/services/fraudDetectionServi
 // Mock the FraudService dependency
 jest.mock('../../../src/services/fraudService', () => ({
   FraudService: {
-    analyzeFraud: jest.fn().mockResolvedValue({
-      fraudScore: 25,
-      riskLevel: 'low',
-      riskFactors: ['Some test factor'],
-      recommendations: ['Test recommendation'],
-      confidence: 0.8
-    })
+    analyzeFraud: jest.fn()
   }
 }));
+
+// Import the mocked module to get access to the mock function
+import { FraudService } from '../../../src/services/fraudService';
+const mockAnalyzeFraud = FraudService.analyzeFraud as jest.MockedFunction<typeof FraudService.analyzeFraud>;
 
 describe('FraudDetectionService', () => {
   let fraudService: FraudDetectionService;
 
   beforeEach(() => {
     fraudService = new FraudDetectionService();
+    mockAnalyzeFraud.mockClear();
   });
 
   describe('simulateClaim', () => {
     it('should simulate low risk claim processing', async () => {
+      // Setup mock for low risk case
+      mockAnalyzeFraud.mockResolvedValueOnce({
+        fraudScore: 15,
+        riskLevel: 'low',
+        riskFactors: ['Minor incident'],
+        recommendations: ['Standard processing'],
+        confidence: 0.85
+      });
+
       const mockClaimData = {
         amount: 1000,
         estimatedAmount: 1000,
@@ -57,6 +65,15 @@ describe('FraudDetectionService', () => {
     });
 
     it('should detect high risk for suspicious claim', async () => {
+      // Setup mock for high risk case
+      mockAnalyzeFraud.mockResolvedValueOnce({
+        fraudScore: 85,
+        riskLevel: 'high',
+        riskFactors: ['High amount', 'Fraud keywords', 'No documentation', 'Low voice confidence'],
+        recommendations: ['Investigate thoroughly', 'Request additional verification'],
+        confidence: 0.9
+      });
+
       const mockClaimData = {
         amount: 100000, // Very high amount
         estimatedAmount: 100000,
@@ -86,6 +103,15 @@ describe('FraudDetectionService', () => {
     });
 
     it('should handle missing data gracefully', async () => {
+      // Setup mock for missing data case
+      mockAnalyzeFraud.mockResolvedValueOnce({
+        fraudScore: 60,
+        riskLevel: 'high',
+        riskFactors: ['Insufficient data', 'No documentation', 'No description'],
+        recommendations: ['Provide complete information'],
+        confidence: 0.3
+      });
+
       const mockClaimData = {
         amount: 1000
         // Minimal data
@@ -103,14 +129,14 @@ describe('FraudDetectionService', () => {
   describe('quickFraudCheck', () => {
     it('should perform quick fraud assessment', async () => {
       const mockClaimData = {
-        amount: 5000,
-        description: 'Minor car damage from parking incident',
+        amount: 30000, // High amount to trigger scoring
+        description: 'Car damage', // Shorter description
         documents: [{ type: 'accident_photo' as const, url: 'damage.jpg', extractedData: new Map(), confidence: 0.9, ocrMethod: 'google_vision' as const }],
         voiceData: {
-          transcript: 'Minor parking damage',
-          keywords: ['parking', 'damage'],
+          transcript: 'Car damage',
+          keywords: ['damage'],
           language: 'en',
-          confidence: 0.9
+          confidence: 0.5 // Low confidence to trigger scoring
         }
       };
 

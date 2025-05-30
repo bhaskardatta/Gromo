@@ -2,10 +2,9 @@ import { IClaim } from '../models/Claim';
 import { FraudService } from './fraudService';
 
 export class FraudDetectionService {
-    private fraudService: FraudService;
 
     constructor() {
-        this.fraudService = new FraudService();
+        // No need to instantiate FraudService since it has static methods
     }
 
     /**

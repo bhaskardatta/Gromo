@@ -1037,10 +1037,13 @@ function generateMockBoundingBoxes(fields: any): BoundingBox[] {
  */
 export function validateDocument(buffer: Buffer, mimeType: string): { valid: boolean; error?: string } {
     const maxSize = 10 * 1024 * 1024; // 10MB
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    const allowedTypes = [
+        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/tiff',
+        'application/pdf'
+    ];
     
     if (buffer.length > maxSize) {
-        return { valid: false, error: 'Document too large (max 10MB)' };
+        return { valid: false, error: 'Document file too large (max 10MB)' };
     }
     
     if (!allowedTypes.includes(mimeType.toLowerCase())) {
@@ -1051,15 +1054,15 @@ export function validateDocument(buffer: Buffer, mimeType: string): { valid: boo
 }
 
 /**
- * Get supported document types (cached)
+ * Get supported document types
  */
 export async function getSupportedDocumentTypes(): Promise<Array<{type: string, name: string, expectedFields: string[]}>> {
-    const cacheKey = 'supported_document_types';
+    const cacheKey = 'ocr:supported-document-types';
     
     // Check cache first
     const cachedTypes = await EnhancedCacheService.get<Array<{type: string, name: string, expectedFields: string[]}>>(cacheKey, {
         namespace: 'ocr',
-        ttl: 86400, // Cache for 24 hours
+        ttl: 86400,
         tags: ['ocr', 'config']
     });
 
@@ -1067,12 +1070,21 @@ export async function getSupportedDocumentTypes(): Promise<Array<{type: string, 
         return cachedTypes;
     }
 
-    // Generate supported types
     const documentTypes = [
         {
             type: 'bill',
             name: 'Medical Bill',
             expectedFields: ['amount', 'date', 'hospitalName', 'patientName', 'diagnosis']
+        },
+        {
+            type: 'receipt',
+            name: 'Receipt',
+            expectedFields: ['amount', 'date', 'merchantName', 'items']
+        },
+        {
+            type: 'invoice',
+            name: 'Invoice',
+            expectedFields: ['amount', 'date', 'vendorName', 'invoiceNumber', 'items']
         },
         {
             type: 'prescription',

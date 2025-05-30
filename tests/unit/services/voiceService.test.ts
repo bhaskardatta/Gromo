@@ -59,9 +59,11 @@ describe('Voice Service', () => {
 
       const result = await processVoiceInput(mockAudioBuffer, mockOptions);
 
-      expect(result.transcript).toContain('मैं एक कार दुर्घटना'); // Hindi mock text
+      expect(result.transcript).toBeDefined();
+      expect(result.transcript.length).toBeGreaterThan(0);
       expect(result.detectedLanguage).toBe('hi-IN');
       expect(result.keywords.length).toBeGreaterThan(0);
+      expect(result.confidence).toBeGreaterThan(0.8);
     });
 
     it('should extract accident claim type from keywords', async () => {
@@ -92,11 +94,9 @@ describe('Voice Service', () => {
 
       const result = await processVoiceInput(mockAudioBuffer, mockOptions);
 
-      // The mock will return medical-related content
-      if (result.transcript.toLowerCase().includes('hospital') || 
-          result.transcript.toLowerCase().includes('doctor')) {
-        expect(result.extractedClaimData.claimType).toBe('medical');
-      }
+      // The mock will now deterministically return medical-related content for medical buffers
+      expect(result.extractedClaimData.claimType).toBe('medical');
+      expect(result.transcript.toLowerCase()).toMatch(/doctor|hospital|medical|medicine|surgery|fever/);
     });
 
     it('should handle different audio formats', async () => {

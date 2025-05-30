@@ -1,6 +1,5 @@
 export default {
-  preset: 'ts-jest/presets/default-esm',
-  extensionsToTreatAsEsm: ['.ts'],
+  preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/src', '<rootDir>/tests'],
   testMatch: [
@@ -9,7 +8,6 @@ export default {
   ],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
-      useESM: true,
       tsconfig: 'tsconfig.jest.json'
     }],
   },

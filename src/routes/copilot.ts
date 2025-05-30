@@ -1,9 +1,18 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { DialogflowCopilotService } from '../services/dialogflowCopilotService';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { logger } from '../utils/logger';
 import { validateRequest } from '../middleware/validationMiddleware';
 import { body, param } from 'express-validator';
+
+// Define interface for authenticated request
+interface AuthenticatedRequest extends Request {
+    user?: {
+        id: string;
+        email: string;
+        role: string;
+    };
+}
 
 const router = express.Router();
 
@@ -21,7 +30,7 @@ router.post('/chat',
         body('claimContext').optional().isObject()
     ],
     validateRequest,
-    async (req, res) => {
+    async (req: AuthenticatedRequest, res: Response) => {
         try {
             const { message, sessionId, languageCode = 'en', claimContext } = req.body;
             const userId = req.user?.id;
@@ -95,7 +104,7 @@ router.get('/conversation/:sessionId',
         param('sessionId').notEmpty().withMessage('Session ID is required')
     ],
     validateRequest,
-    async (req, res) => {
+    async (req: AuthenticatedRequest, res: Response) => {
         try {
             const userId = req.user?.id;
             const context = DialogflowCopilotService.getConversationContext(userId);
@@ -135,7 +144,7 @@ router.get('/conversation/:sessionId',
  */
 router.post('/suggestions',
     authMiddleware,
-    async (req, res) => {
+    async (req: AuthenticatedRequest, res: Response) => {
         try {
             const userId = req.user?.id;
             const context = DialogflowCopilotService.getConversationContext(userId);
@@ -185,7 +194,7 @@ router.put('/preferences',
         body('preferredChannel').optional().isIn(['text', 'voice', 'whatsapp'])
     ],
     validateRequest,
-    async (req, res) => {
+    async (req: AuthenticatedRequest, res: Response) => {
         try {
             const userId = req.user?.id;
             const { language, communicationStyle, preferredChannel } = req.body;
@@ -245,7 +254,7 @@ router.put('/preferences',
  */
 router.delete('/conversation',
     authMiddleware,
-    async (req, res) => {
+    async (req: AuthenticatedRequest, res: Response) => {
         try {
             const userId = req.user?.id;
             
@@ -292,7 +301,7 @@ router.post('/escalate',
         body('sessionId').optional().isString()
     ],
     validateRequest,
-    async (req, res) => {
+    async (req: AuthenticatedRequest, res: Response) => {
         try {
             const userId = req.user?.id;
             const { reason, priority = 'medium', sessionId } = req.body;

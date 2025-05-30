@@ -1,30 +1,24 @@
-{
-  "baseUrl": "http://localhost:3000",
-  "supportFile": "tests/e2e/support/index.ts",
-  "specPattern": "tests/e2e/specs/**/*.cy.ts",
-  "videosFolder": "tests/e2e/videos",
-  "screenshotsFolder": "tests/e2e/screenshots",
-  "fixturesFolder": "tests/e2e/fixtures",
-  "viewportWidth": 1280,
-  "viewportHeight": 720,
-  "env": {
-    "apiUrl": "http://localhost:3000/api",
-    "testUser": {
-      "email": "test@example.com",
-      "password": "testpassword123"
+import { defineConfig } from 'cypress';
+
+export default defineConfig({
+  e2e: {
+    baseUrl: 'http://localhost:3000',
+    supportFile: 'tests/e2e/support/index.ts',
+    specPattern: 'tests/e2e/specs/**/*.cy.ts',
+    fixturesFolder: 'tests/e2e/fixtures',
+    screenshotsFolder: 'tests/e2e/screenshots',
+    videosFolder: 'tests/e2e/videos',
+    downloadsFolder: 'tests/e2e/downloads',
+    viewportWidth: 1280,
+    viewportHeight: 720,
+    env: {
+      apiUrl: '/api/v1',
+      authUrl: '/api/v1/auth',
+      mockAuth: true
     },
-    "adminUser": {
-      "email": "admin@example.com", 
-      "password": "adminpassword123"
-    }
+    setupNodeEvents(on, config) {
+      // implement node event listeners here
+      return config;
+    },
   },
-  "e2e": {
-    "setupNodeEvents": "tests/e2e/plugins/index.ts"
-  },
-  "component": {
-    "devServer": {
-      "framework": "react",
-      "bundler": "webpack"
-    }
-  }
-}
+});

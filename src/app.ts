@@ -6,6 +6,7 @@ import { logger } from './utils/logger';
 import { config } from './config/config';
 import { EnhancedCacheService } from './services/enhancedCacheService';
 import { setupSwagger } from './config/swagger';
+import cors from 'cors';
 
 // Import security middleware
 import {
@@ -40,6 +41,8 @@ import escalationRoutes from './api/escalation';
 import copilotRoutes from './routes/copilot';
 import apiKeysRoutes from './api/apiKeys';
 import whatsappRoutes from './api/whatsapp';
+import authRoutes from './routes/auth';
+import frontendMockRoutes from './routes/frontend-mocks';
 
 const app = express();
 
@@ -56,6 +59,12 @@ app.use(securityHeaders);
 
 // 2. CORS configuration
 app.use(configureCORS());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
 // 3. Request logging and tracking
 app.use(requestLogger);
@@ -156,6 +165,12 @@ if (config.isDevelopment()) {
 }
 
 // ====================================
+// AUTH ROUTES
+// ====================================
+
+app.use('/api/v1/auth', authRoutes);
+
+// ====================================
 // ADMIN ROUTES
 // ====================================
 
@@ -221,6 +236,12 @@ app.delete('/api/admin/cache/invalidate', strictRateLimit, authenticateToken, ad
         deletedCount 
     });
 });
+
+// Frontend routes for E2E testing
+if (process.env.NODE_ENV === 'development' || process.env.CYPRESS) {
+  app.use('/', frontendMockRoutes);
+  logger.info('Frontend mock routes enabled for testing');
+}
 
 // ====================================
 // ERROR HANDLING

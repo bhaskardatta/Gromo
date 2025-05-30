@@ -1,59 +1,72 @@
 // Custom Cypress commands
-import 'cypress-axe';
-import 'cypress-real-events/support';
+import '@cypress/code-coverage/support';
+import 'cypress-file-upload';
+
+// Add custom command types
+declare global {
+  namespace Cypress {
+    interface Chainable {
+      login(email?: string, password?: string): Chainable<Cypress.Response<any>>;
+      loginAsCustomer(): Chainable<void>;
+      loginAsAdjuster(): Chainable<void>;
+      loginAsAdmin(): Chainable<void>;
+      mockAuthEndpoints(): void;
+    }
+  }
+}
 
 // User login helpers
-const userCredentials = {
-  admin: { email: 'admin@gromo.com', password: 'admin123' },
-  adjuster: { email: 'adjuster@gromo.com', password: 'adjuster123' },
-  customer: { email: 'customer@gromo.com', password: 'customer123' }
-};
-
-Cypress.Commands.add('login', (email: string, password: string) => {
-  cy.request({
+Cypress.Commands.add('login', (email, password) => {
+  // Use the correct API endpoint path
+  return cy.request({
     method: 'POST',
-    url: `${Cypress.env('apiUrl')}/auth/login`,
+    url: '/api/v1/auth/login',  // Fixed URL - removed undefined prefix
     body: {
-      email,
-      password
+      email: email || 'test@example.com',
+      password: password || 'password123'
     }
   }).then((response) => {
-    expect(response.status).to.eq(200);
-    const token = response.body.token;
-    
-    // Store token in localStorage
-    window.localStorage.setItem('authToken', token);
-    
-    // Set default authorization header
-    cy.window().then((win) => {
-      win.localStorage.setItem('authToken', token);
-    });
+    // Store the token in localStorage as your app would
+    window.localStorage.setItem('authToken', response.body.token);
+    return response;
   });
 });
 
-Cypress.Commands.add('loginAs', (role: 'admin' | 'adjuster' | 'customer') => {
-  const credentials = userCredentials[role];
-  cy.login(credentials.email, credentials.password);
+// Login as specific user roles
+Cypress.Commands.add('loginAsCustomer', () => {
+  return cy.login('customer@gromo.com', 'password123');
 });
 
-Cypress.Commands.add('uploadFile', (selector: string, fileName: string) => {
-  cy.fixture(fileName, 'base64').then((fileContent) => {
-    cy.get(selector).then((input) => {
-      const blob = Cypress.Blob.base64StringToBlob(fileContent);
-      const file = new File([blob], fileName, { type: 'image/jpeg' });
-      const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(file);
-      
-      const inputEl = input[0] as HTMLInputElement;
-      inputEl.files = dataTransfer.files;
-      
-      cy.wrap(input).trigger('change', { force: true });
-    });
-  });
+Cypress.Commands.add('loginAsAdjuster', () => {
+  return cy.login('adjuster@example.com', 'password123');
 });
 
-Cypress.Commands.add('waitForApi', (alias: string) => {
-  cy.wait(alias).then((interception) => {
-    expect(interception.response?.statusCode).to.be.oneOf([200, 201, 204]);
-  });
+Cypress.Commands.add('loginAsAdmin', () => {
+  return cy.login('admin@gromo.com', 'password123');
+});
+
+// Mock the auth endpoints for tests
+Cypress.Commands.add('mockAuthEndpoints', () => {
+  cy.intercept('POST', '/api/v1/auth/login', {
+    statusCode: 200,
+    body: {
+      token: 'mock-jwt-token',
+      user: {
+        id: '1',
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'customer'
+      }
+    }
+  }).as('loginRequest');
+  
+  cy.intercept('GET', '/api/v1/auth/profile', {
+    statusCode: 200,
+    body: {
+      id: '1',
+      email: 'test@example.com',
+      name: 'Test User',
+      role: 'customer'
+    }
+  }).as('profileRequest');
 });

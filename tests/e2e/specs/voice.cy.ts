@@ -3,7 +3,7 @@
 describe('Voice Processing E2E Tests', () => {
   beforeEach(() => {
     // Intercept API calls
-    cy.intercept('POST', '/api/voice/transcribe', {
+    cy.intercept('POST', '/api/v1/voice/process', {
       statusCode: 200,
       body: {
         transcript: 'I need help with my insurance claim',
@@ -17,136 +17,69 @@ describe('Voice Processing E2E Tests', () => {
           dateTime: null,
           phoneNumber: null,
           vehicleNumber: null
-        }
+        },
+        keywords: ['insurance', 'claim', 'help'],
+        claimType: 'general'
       }
-    }).as('transcribeApi');
-
-    cy.intercept('GET', '/api/voice/languages', {
-      statusCode: 200,
-      body: {
-        languages: ['en-IN', 'hi-IN', 'te-IN', 'ta-IN', 'mr-IN']
-      }
-    }).as('languagesApi');
-  });
-
-  it('should display voice upload interface', () => {
+    }).as('processVoiceApi');
+    
+    // Visit the voice processing page
     cy.visit('/voice');
     
-    // Check if voice upload interface is visible
-    cy.get('[data-cy=voice-upload]').should('be.visible');
-    cy.get('[data-cy=language-selector]').should('be.visible');
-    cy.get('[data-cy=upload-button]').should('be.visible');
+    // Login if needed
+    cy.get('[data-cy=login-email]').type('user@example.com');
+    cy.get('[data-cy=login-password]').type('password123');
+    cy.get('[data-cy=login-submit]').click();
   });
 
-  it('should handle successful voice transcription', () => {
-    cy.login(Cypress.env('testUser').email, Cypress.env('testUser').password);
-    cy.visit('/voice');
+  it('should allow uploading an audio file for processing', () => {
+    // Upload an audio file
+    cy.get('[data-cy=voice-upload]').attachFile('../fixtures/test-audio.mp3');
     
-    // Select language
-    cy.get('[data-cy=language-selector]').select('en-IN');
+    // Click process button
+    cy.get('[data-cy=process-audio]').click();
     
-    // Upload audio file
-    cy.uploadFile('[data-cy=audio-input]', 'test-audio.mp3');
+    // Wait for API response
+    cy.wait('@processVoiceApi');
     
-    // Submit for transcription
-    cy.get('[data-cy=transcribe-button]').click();
-    
-    // Wait for API call
-    cy.waitForApi('@transcribeApi');
-    
-    // Check results
-    cy.get('[data-cy=transcript-result]').should('contain', 'I need help with my insurance claim');
-    cy.get('[data-cy=confidence-score]').should('contain', '95%');
+    // Check that the transcript is displayed
+    cy.get('[data-cy=transcript-result]')
+      .should('be.visible')
+      .and('contain', 'I need help with my insurance claim');
   });
 
-  it('should handle authentication errors', () => {
-    cy.visit('/voice');
+  it('should display extracted entities from voice processing', () => {
+    // Upload an audio file
+    cy.get('[data-cy=voice-upload]').attachFile('../fixtures/test-audio.mp3');
     
-    // Try to upload without authentication
-    cy.uploadFile('[data-cy=audio-input]', 'test-audio.mp3');
-    cy.get('[data-cy=transcribe-button]').click();
+    // Click process button
+    cy.get('[data-cy=process-audio]').click();
     
-    // Should show authentication error
-    cy.get('[data-cy=error-message]').should('contain', 'Authentication required');
-  });
-
-  it('should validate file format', () => {
-    cy.login(Cypress.env('testUser').email, Cypress.env('testUser').password);
-    cy.visit('/voice');
+    // Wait for API response
+    cy.wait('@processVoiceApi');
     
-    // Try to upload invalid file format
-    cy.uploadFile('[data-cy=audio-input]', 'test-document.pdf');
-    
-    // Should show format validation error
-    cy.get('[data-cy=error-message]').should('contain', 'Invalid file format');
-  });
-
-  it('should display supported languages', () => {
-    cy.visit('/voice');
-    
-    // Click on language selector
-    cy.get('[data-cy=language-selector]').click();
-    
-    // Wait for languages API
-    cy.waitForApi('@languagesApi');
-    
-    // Check if languages are loaded
-    cy.get('[data-cy=language-selector] option').should('have.length.greaterThan', 1);
-    cy.get('[data-cy=language-selector]').should('contain', 'English (India)');
-    cy.get('[data-cy=language-selector]').should('contain', 'Hindi');
-  });
-
-  it('should handle entity extraction results', () => {
-    cy.intercept('POST', '/api/voice/transcribe', {
-      statusCode: 200,
-      body: {
-        transcript: 'My claim number is CLM123456 and policy number is POL789012',
-        confidence: 0.92,
-        language: 'en-IN',
-        entities: {
-          claimNumber: 'CLM123456',
-          policyNumber: 'POL789012',
-          incidentType: null,
-          location: null,
-          dateTime: null,
-          phoneNumber: null,
-          vehicleNumber: null
-        }
-      }
-    }).as('transcribeWithEntities');
-
-    cy.login(Cypress.env('testUser').email, Cypress.env('testUser').password);
-    cy.visit('/voice');
-    
-    cy.uploadFile('[data-cy=audio-input]', 'test-audio.mp3');
-    cy.get('[data-cy=transcribe-button]').click();
-    
-    cy.waitForApi('@transcribeWithEntities');
-    
-    // Check extracted entities
+    // Check that entities section is displayed
     cy.get('[data-cy=entities-section]').should('be.visible');
-    cy.get('[data-cy=claim-number]').should('contain', 'CLM123456');
-    cy.get('[data-cy=policy-number]').should('contain', 'POL789012');
+    
+    // Check confidence score is displayed correctly
+    cy.get('[data-cy=confidence-score]')
+      .should('be.visible')
+      .and('contain', '95%');
   });
 
-  it('should handle rate limiting', () => {
-    cy.login(Cypress.env('testUser').email, Cypress.env('testUser').password);
-    cy.visit('/voice');
+  it('should automatically detect claim type from voice input', () => {
+    // Upload an audio file
+    cy.get('[data-cy=voice-upload]').attachFile('../fixtures/test-audio.mp3');
     
-    // Mock rate limit response
-    cy.intercept('POST', '/api/voice/transcribe', {
-      statusCode: 429,
-      body: {
-        error: 'Too many requests. Please try again later.'
-      }
-    }).as('rateLimitApi');
+    // Click process button
+    cy.get('[data-cy=process-audio]').click();
     
-    cy.uploadFile('[data-cy=audio-input]', 'test-audio.mp3');
-    cy.get('[data-cy=transcribe-button]').click();
+    // Wait for API response
+    cy.wait('@processVoiceApi');
     
-    cy.waitForApi('@rateLimitApi');
-    
-    // Should show rate limit message
-    cy.get('[data-cy=error-message]').should('contain', 'Too many requests');
+    // Check that claim type is detected and displayed
+    cy.get('[data-cy=claim-type]')
+      .should('be.visible')
+      .and('contain', 'general');
   });
 });

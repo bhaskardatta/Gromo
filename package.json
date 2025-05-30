@@ -1,7 +1,6 @@
 {
   "name": "gromo",
   "version": "1.0.0",
-  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -33,7 +32,11 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "docs:generate": "swagger-jsdoc -d src/config/swagger.ts -o docs/api.json src/api/*.ts",
     "docs:serve": "swagger-ui-serve docs/api.json",
-    "prepare": "husky"
+    "prepare": "husky",
+    "cypress:open": "CYPRESS=true cypress open",
+    "cypress:run": "CYPRESS=true cypress run",
+    "seed": "ts-node scripts/seed.ts",
+    "start:test": "NODE_ENV=development CYPRESS=true ts-node src/index.ts"
   },
   "keywords": [
     "typescript",
@@ -45,6 +48,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
+    "@cypress/webpack-preprocessor": "^6.0.4",
     "@types/bcryptjs": "^2.4.6",
     "@types/compression": "^1.8.0",
     "@types/cors": "^2.8.18",
