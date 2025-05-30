@@ -1,151 +1,79 @@
 # Gromo - Insurance Claim Assistance Platform
 
-A comprehensive TypeScript-based insurance claim processing platform with AI-powered voice and OCR capabilities, fraud detection, and automated escalation features.
+Gromo is a comprehensive insurance claim processing platform that leverages AI technologies for voice recognition, document OCR, and claims management. The platform helps streamline the insurance claims process through intelligent automation and data extraction.
 
-## 🚀 Project Status
-✅ **Production Ready** - Complete implementation with comprehensive testing, security, and deployment infrastructure.
+## 🚀 Features
 
-## 🔄 Modernization Overview
+- **Voice Processing**: Transcribe and analyze voice recordings for claim information extraction
+- **Document OCR**: Extract structured data from insurance documents using optical character recognition
+- **Claims Management**: End-to-end management of insurance claims with status tracking
+- **Authentication**: Secure user authentication and authorization
+- **API Documentation**: Comprehensive API documentation with Swagger/OpenAPI
 
-The Gromo platform has been fully modernized with enterprise-grade capabilities:
+## 🛠️ Technologies
 
-### ✨ Recent Modernization Enhancements
+- **Backend**: Node.js, Express, TypeScript
+- **Frontend**: React, Material-UI, TypeScript
+- **Database**: MongoDB
+- **Caching**: Redis
+- **AI Services**: Google Cloud Speech-to-Text, Google Cloud Vision
+- **Authentication**: JWT, bcrypt
+- **Documentation**: Swagger/OpenAPI
 
-#### 🧪 Enhanced E2E Testing Infrastructure
-- **Comprehensive Test Coverage**: Complete claims management workflow testing
-- **Authentication Testing**: Registration, login, RBAC, and session management
-- **Performance Testing**: Load time and responsiveness validation
-- **Accessibility Testing**: Basic WCAG compliance checks
-- **Mobile Responsiveness**: Touch interactions and responsive layout testing
-- **Security Testing**: 2FA, brute force protection, and session security
+## 🏁 Quick Start Guide
 
-#### 📊 Advanced Monitoring Dashboards
-- **Business Metrics Dashboard**: Claims processing rates, fraud detection analytics, voice processing latency, language distribution, and SLA tracking
-- **Infrastructure Dashboard**: Kubernetes health, resource usage, database monitoring, network I/O, and service discovery status
-- **Real-time Alerting**: Automated notifications for critical system events
-- **Performance Metrics**: Comprehensive application and infrastructure monitoring
+### Prerequisites
 
-#### 💾 Enhanced Backup Automation
-- **Multi-Component Backup**: MongoDB, Redis, and application data
-- **Cloud Integration**: AWS S3, Azure Blob Storage, and Google Cloud Storage support
-- **Encryption**: AES-256 encryption for backup data
-- **Verification**: Automated backup integrity checks
-- **Notifications**: Email/Slack alerts for backup status
-- **Retention Policies**: Configurable backup retention and cleanup
+- Node.js (v18+)
+- MongoDB (v6.0+)
+- Redis (v7.0+)
+- Google Cloud Platform account (for production use of Speech-to-Text and Vision APIs)
 
-#### 🔄 CI/CD Pipeline Enhancements
-- **Code Quality**: ESLint, Prettier, and TypeScript type checking
-- **Security Scanning**: CodeQL analysis, Trivy vulnerability scanning, and SonarCloud integration
-- **Multi-Environment Testing**: Unit, integration, E2E, and performance testing
-- **Automated Deployment**: Staging and production deployment with blue-green strategy
-- **Container Security**: Docker image scanning and security best practices
+### Full Stack Quick Start
 
-#### ⚡ Performance Optimization
-- **Node.js Optimization**: Memory management and garbage collection tuning
-- **Database Optimization**: Connection pooling and query optimization
-- **Caching Strategy**: Redis caching with intelligent cache invalidation
-- **Rate Limiting**: API protection and DDoS prevention
-- **Auto-scaling**: Kubernetes horizontal pod autoscaling configuration
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/gromo.git
+   cd gromo
+   ```
 
-### 🔧 Modernization Tools & Technologies
+2. **Install dependencies**
+   ```bash
+   # Install backend dependencies
+   npm install
 
-| Component | Technology | Purpose |
-|-----------|------------|---------|
-| **E2E Testing** | Cypress | Complete user workflow testing |
-| **Monitoring** | Grafana + Prometheus | Real-time metrics and alerting |
-| **Backup** | Custom Scripts + Cloud Storage | Automated data protection |
-| **CI/CD** | GitHub Actions | Automated testing and deployment |
-| **Performance** | Node.js + Redis | High-performance configuration |
-| **Security** | CodeQL + Trivy | Vulnerability scanning and analysis |
-| **Documentation** | Swagger + JSDoc | Comprehensive API documentation |
+   # Install frontend dependencies
+   cd client
+   npm install
+   cd ..
+   ```
 
-## 🏗️ Architecture Overview
+3. **Copy environment configuration**
+   ```bash
+   # Copy the example .env file
+   cp .env.example .env
 
-Gromo is built with modern enterprise architecture principles:
+   # Open and edit the .env file with your configuration
+   # For development, you can keep MOCK_GOOGLE_SERVICES=true
+   ```
 
-- **Backend**: Node.js with TypeScript, Express.js
-- **Database**: MongoDB with Mongoose ODM
-- **Cache**: Redis for performance optimization
-- **Authentication**: JWT with role-based access control
-- **AI Services**: Google Cloud Speech-to-Text and Vision APIs
-- **Queue Management**: BullMQ for background processing
-- **Monitoring**: Prometheus and Grafana
-- **Deployment**: Docker with Kubernetes support
+4. **Configure your environment variables in .env**
+   - Database connections
+   - Google Cloud credentials
+   - JWT secrets
+   - API keys
 
-## 🛠️ Prerequisites
+5. **Start development server**
+   ```bash
+   npm run seed
+   npm run build:full && npm start
+   ```
 
-- **Node.js** (version 18 or higher)
-- **MongoDB** (version 6.0 or higher)
-- **Redis** (version 7 or higher)
-- **Google Cloud Platform** account (for AI services)
-- **Docker** (for containerized deployment)
-
-## 📦 Installation
-
-### Local Development Setup
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd gromo
-
-# Install dependencies
-npm install
-
-# Copy environment configuration
-cp .env.example .env
-
-# Configure your environment variables in .env
-# - Database connections
-# - Google Cloud credentials
-# - JWT secrets
-# - API keys
-
-# Start development server
-npm run dev
-```
-
-### Full Stack Quick Start (Frontend + Backend)
-
-To run the complete integrated application with both React frontend and Express backend:
-
-```bash
-# Install backend dependencies
-npm install
-
-# Install frontend dependencies
-cd client && npm install && cd ..
-
-# Copy environment configuration
-cp .env.example .env
-
-# Configure your environment variables in .env
-# - Database connections (MongoDB, Redis)
-# - Google Cloud credentials  
-# - JWT secrets
-# - API keys
-
-# Build and start the full stack application
-npm run start:full
-
-# The application will be available at:
-# - Frontend: http://localhost:3000
-# - Backend API: http://localhost:3000/api/v1/*
-# - API Docs: http://localhost:3000/api-docs
-# - Health Check: http://localhost:3000/health
-```
-
-**Alternative Development Commands:**
-```bash
-# Build everything (backend + frontend)
-npm run build:full
-
-# Development mode with hot reload (backend only)
-npm run dev
-
-# Development mode for frontend (in separate terminal)
-npm run dev:frontend
-```
+6. **Access the application**
+   - Frontend: [http://localhost:3000](http://localhost:3000)
+   - Backend API: [http://localhost:3000/api/v1/*](http://localhost:3000/api/v1/*)
+   - API Docs: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+   - Health Check: [http://localhost:3000/health](http://localhost:3000/health)
 
 ### Docker Development Setup
 
@@ -155,6 +83,9 @@ docker-compose up -d
 
 # View logs
 docker-compose logs -f gromo-app
+
+# In a separate terminal, run the database seeder
+docker-compose exec api npm run seed
 
 # Stop services
 docker-compose down
@@ -219,6 +150,8 @@ npm run lint
 npm run dev          # Start development server with hot reload
 npm run build        # Build for production
 npm start            # Start production server
+# Build and start both frontend and backend
+npm run build:full && npm start
 
 # Testing
 npm run test         # Run all tests
