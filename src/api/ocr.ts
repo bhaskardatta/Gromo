@@ -132,9 +132,7 @@ router.get('/supported-document-types', async (req, res) => {
 
         res.json({
             status: 'success',
-            data: {
-                documentTypes
-            }
+            data: documentTypes // Return the array directly, not nested under documentTypes
         });
     } catch (error) {
         logger.error('Error getting supported document types:', error);

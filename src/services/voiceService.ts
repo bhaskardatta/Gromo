@@ -10,11 +10,12 @@ const speech = require('@google-cloud/speech');
 let speechClient: any = null;
 const isProduction = process.env.NODE_ENV === 'production';
 
-if (isProduction && config.google?.projectId) {
+if (isProduction || (!isProduction && !process.env.MOCK_GOOGLE_SERVICES)) {
     try {
+        const googleConfig = config.getGoogleCloud();
         speechClient = new speech.SpeechClient({
-            projectId: config.google.projectId,
-            keyFilename: config.google.credentialsPath
+            projectId: googleConfig.projectId,
+            keyFilename: googleConfig.keyFile
         });
         logger.info('Google Speech-to-Text client initialized');
     } catch (error) {

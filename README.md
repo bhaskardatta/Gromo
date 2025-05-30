@@ -105,6 +105,48 @@ cp .env.example .env
 npm run dev
 ```
 
+### Full Stack Quick Start (Frontend + Backend)
+
+To run the complete integrated application with both React frontend and Express backend:
+
+```bash
+# Install backend dependencies
+npm install
+
+# Install frontend dependencies
+cd client && npm install && cd ..
+
+# Copy environment configuration
+cp .env.example .env
+
+# Configure your environment variables in .env
+# - Database connections (MongoDB, Redis)
+# - Google Cloud credentials  
+# - JWT secrets
+# - API keys
+
+# Build and start the full stack application
+npm run start:full
+
+# The application will be available at:
+# - Frontend: http://localhost:3000
+# - Backend API: http://localhost:3000/api/v1/*
+# - API Docs: http://localhost:3000/api-docs
+# - Health Check: http://localhost:3000/health
+```
+
+**Alternative Development Commands:**
+```bash
+# Build everything (backend + frontend)
+npm run build:full
+
+# Development mode with hot reload (backend only)
+npm run dev
+
+# Development mode for frontend (in separate terminal)
+npm run dev:frontend
+```
+
 ### Docker Development Setup
 
 ```bash

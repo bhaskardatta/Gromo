@@ -1,9 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Container, Typography, Box, Button, Paper, CircularProgress, 
-  Alert, List, ListItem, ListItemText, Divider, Chip, Grid
-} from '@mui/material';
 import { ocrApi } from '../services/api';
+import {
+  Box,
+  Button,
+  Typography,
+  Paper,
+  CircularProgress,
+  Alert,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Divider,
+  useTheme
+} from '@mui/material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import FindInPageIcon from '@mui/icons-material/FindInPage';
+import DescriptionIcon from '@mui/icons-material/Description';
+import DataObjectIcon from '@mui/icons-material/DataObject';
+
+interface OCRResult {
+  extractedText: string;
+  confidence: number;
+  fields: Array<{ fieldName: string; value: string; confidence: number }>;
+  documentType: string;
+}
 
 interface DocumentType {
   type: string;
@@ -11,193 +40,197 @@ interface DocumentType {
   expectedFields: string[];
 }
 
-interface OCRResult {
-  documentType: string;
-  confidence: number;
-  extractedFields: Record<string, any>;
-  rawText: string;
-}
-
 const OCRProcessing: React.FC = () => {
-  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [typesLoading, setTypesLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>('');
+  const [file, setFile] = useState<File | null>(null);
+  const [documentType, setDocumentType] = useState<string>('');
+  const [supportedDocTypes, setSupportedDocTypes] = useState<DocumentType[]>([]);
   const [result, setResult] = useState<OCRResult | null>(null);
-  
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const theme = useTheme();
+
   useEffect(() => {
-    fetchDocumentTypes();
+    const fetchDocTypes = async () => {
+      try {
+        const response = await ocrApi.getSupportedDocumentTypes();
+        setSupportedDocTypes(response.data.documentTypes || []);
+        if (response.data.documentTypes && response.data.documentTypes.length > 0) {
+          setDocumentType(response.data.documentTypes[0].type); // Default to first type
+        }
+      } catch (err) {
+        console.error('Error fetching supported document types:', err);
+        setError('Failed to load supported document types.');
+      }
+    };
+    fetchDocTypes();
   }, []);
-  
-  const fetchDocumentTypes = async () => {
-    try {
-      const response = await ocrApi.getSupportedDocumentTypes();
-      setDocumentTypes(response.data.data.documentTypes || []);
-    } catch (err) {
-      console.error('Error fetching document types:', err);
-      setError('Failed to load supported document types');
-    } finally {
-      setTypesLoading(false);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setFile(event.target.files[0]);
+      setResult(null);
+      setError(null);
     }
   };
-  
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setSelectedFile(e.target.files[0]);
-      setError('');
-    }
-  };
-  
+
   const handleProcess = async () => {
-    if (!selectedFile) {
-      setError('Please select a document to process');
+    if (!file) {
+      setError('Please select a document file first.');
       return;
     }
-    
+    if (!documentType) {
+      setError('Please select a document type.');
+      return;
+    }
     setLoading(true);
-    setError('');
+    setError(null);
     setResult(null);
-    
+
+    const formData = new FormData();
+    formData.append('document', file);
+    formData.append('documentType', documentType);
+
     try {
-      const response = await ocrApi.processDocument(selectedFile);
-      setResult(response.data.data);
+      const response = await ocrApi.processDocument(formData);
+      setResult(response.data);
     } catch (err: any) {
+      setError(err.response?.data?.error || 'Error processing document.');
       console.error('Error processing document:', err);
-      setError(err.response?.data?.message || 'Error processing document');
     } finally {
       setLoading(false);
     }
   };
-  
+
+  const selectedDocTypeDetails = supportedDocTypes.find(dt => dt.type === documentType);
+
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        OCR Document Processing
+    <Paper sx={{ p: 3, mt: 2 }}>
+      <Typography variant="h4" gutterBottom sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
+        <FindInPageIcon sx={{ mr: 1, fontSize: '2rem', color: theme.palette.primary.main }} /> Document Analysis (OCR)
       </Typography>
-      
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" gutterBottom>
-              Supported Document Types
-            </Typography>
-            
-            {typesLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                <CircularProgress size={24} />
-              </Box>
-            ) : (
-              <List dense>
-                {documentTypes.map((docType) => (
-                  <React.Fragment key={docType.type}>
-                    <ListItem>
-                      <ListItemText
-                        primary={docType.name}
-                        secondary={`Expected fields: ${docType.expectedFields.join(', ')}`}
-                      />
-                    </ListItem>
-                    <Divider component="li" />
-                  </React.Fragment>
-                ))}
-              </List>
-            )}
-          </Paper>
-        </Grid>
-        
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Upload Document
-            </Typography>
-            
-            <Box sx={{ mb: 3 }}>
-              <input
-                accept="image/*,.pdf"
-                style={{ display: 'none' }}
-                id="document-file-upload"
-                type="file"
-                onChange={handleFileChange}
-                data-cy="document-upload"
-              />
-              <label htmlFor="document-file-upload">
-                <Button variant="contained" component="span">
-                  Select Document
-                </Button>
-              </label>
-              {selectedFile && (
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Selected file: {selectedFile.name}
-                </Typography>
-              )}
-            </Box>
-            
-            <Button 
-              variant="contained" 
-              color="primary" 
-              onClick={handleProcess}
-              disabled={!selectedFile || loading}
-              data-cy="process-document"
+
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, alignItems: { md: 'center' }, mb: 3 }}>
+        <Box sx={{ flex: { md: '0 0 33%' } }}>
+          <FormControl fullWidth margin="normal">
+            <InputLabel id="doctype-select-label">Document Type</InputLabel>
+            <Select
+              labelId="doctype-select-label"
+              value={documentType}
+              label="Document Type"
+              onChange={(e) => setDocumentType(e.target.value as string)}
             >
-              {loading ? <CircularProgress size={24} /> : 'Process Document'}
+              {supportedDocTypes.length > 0 ? (
+                supportedDocTypes.map((doc) => (
+                  <MenuItem key={doc.type} value={doc.type}>
+                    {doc.name}
+                  </MenuItem>
+                ))
+              ) : (
+                <MenuItem value="" disabled>Loading document types...</MenuItem>
+              )}
+            </Select>
+          </FormControl>
+        </Box>
+        <Box sx={{ flex: { md: '1' } }}>
+          <Button
+            variant="contained"
+            component="label"
+            fullWidth
+            startIcon={<CloudUploadIcon />}
+            sx={{ py: 1.8, mt: { xs: 1, md: 2 } }}
+          >
+            {file ? file.name : 'Choose Document File'}
+            <input type="file" hidden onChange={handleFileChange} accept=".pdf,.png,.jpg,.jpeg,.tiff" />
+          </Button>
+        </Box>
+        <Box sx={{ flex: { md: '0 0 25%' } }}>
+            <Button
+                variant="contained"
+                color="primary"
+                onClick={handleProcess}
+                disabled={!file || !documentType || loading}
+                fullWidth
+                size="large"
+                sx={{ py: 1.5, mt: { xs: 1, md: 2 } }}
+                startIcon={loading ? <CircularProgress size={24} color="inherit" /> : <CheckCircleOutlineIcon />}
+            >
+                {loading ? 'Processing...' : 'Process Document'}
             </Button>
-            
-            {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-            
-            {result && (
-              <Box sx={{ mt: 3 }} data-cy="ocr-results">
-                <Typography variant="h6" gutterBottom>
-                  Results
+        </Box>
+      </Box>
+
+      {selectedDocTypeDetails && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 3, borderColor: theme.palette.primary.light }}>
+          <Typography variant="subtitle1" gutterBottom>Expected fields for <strong>{selectedDocTypeDetails.name}</strong>:</Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {selectedDocTypeDetails.expectedFields.map(field => (
+              <Chip key={field} label={field} size="small" variant="outlined" />
+            ))}
+          </Box>
+        </Paper>
+      )}
+
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+          <CircularProgress />
+        </Box>
+      )}
+
+      {result && (
+        <Paper elevation={2} sx={{ p: 3, mt: 3, backgroundColor: theme.palette.background.default }}>
+          <Typography variant="h5" gutterBottom sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+            <DescriptionIcon sx={{ mr: 1, color: theme.palette.secondary.main }} /> OCR Results
+          </Typography>
+          <Divider sx={{ my: 2 }} />
+
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, mb: 3 }}>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="subtitle1"><strong>Document Type:</strong> {result.documentType}</Typography>
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="subtitle1"><strong>Overall Confidence:</strong> {(result.confidence * 100).toFixed(2)}%</Typography>
+            </Box>
+          </Box>
+
+            {result.fields && result.fields.length > 0 && (
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="h6" gutterBottom sx={{ mt: 2, display: 'flex', alignItems: 'center' }}>
+                  <DataObjectIcon sx={{ mr: 1 }} /> Extracted Fields:
                 </Typography>
-                
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="subtitle1">Document Type:</Typography>
-                  <Chip 
-                    label={documentTypes.find(dt => dt.type === result.documentType)?.name || result.documentType} 
-                    color="primary"
-                    data-cy="detected-document-type"
-                  />
-                </Box>
-                
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="subtitle1">Confidence:</Typography>
-                  <Chip 
-                    label={`${Math.round(result.confidence * 100)}%`}
-                    color={result.confidence > 0.8 ? "success" : result.confidence > 0.6 ? "warning" : "error"}
-                    data-cy="ocr-confidence"
-                  />
-                </Box>
-                
-                <Typography variant="subtitle1" gutterBottom>
-                  Extracted Fields:
-                </Typography>
-                <Paper elevation={0} sx={{ p: 2, bgcolor: '#f5f5f5', mb: 2 }} data-cy="extracted-fields">
-                  <List dense>
-                    {Object.entries(result.extractedFields).map(([key, value]) => (
-                      <ListItem key={key}>
-                        <ListItemText
-                          primary={key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                          secondary={value?.toString() || 'Not detected'}
-                        />
-                      </ListItem>
-                    ))}
-                  </List>
-                </Paper>
-                
-                <Typography variant="subtitle1" gutterBottom>
-                  Raw Text:
-                </Typography>
-                <Paper elevation={0} sx={{ p: 2, bgcolor: '#f5f5f5', maxHeight: 200, overflow: 'auto' }} data-cy="raw-text">
-                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                    {result.rawText}
-                  </Typography>
-                </Paper>
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead sx={{ backgroundColor: theme.palette.grey[200]}}>
+                      <TableRow>
+                        <TableCell>Field Name</TableCell>
+                        <TableCell>Value</TableCell>
+                        <TableCell align="right">Confidence</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {result.fields.map((field, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{field.fieldName}</TableCell>
+                          <TableCell>{field.value}</TableCell>
+                          <TableCell align="right">{(field.confidence * 100).toFixed(2)}%</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               </Box>
             )}
-          </Paper>
-        </Grid>
-      </Grid>
-    </Container>
+
+            <Box>
+              <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>Raw Extracted Text:</Typography>
+              <Paper variant="outlined" sx={{ p: 2, maxHeight: 300, overflowY: 'auto', backgroundColor: theme.palette.grey[100], whiteSpace: 'pre-wrap' }}>
+                <Typography variant="body2">{result.extractedText}</Typography>
+              </Paper>
+            </Box>
+        </Paper>
+      )}
+    </Paper>
   );
 };
 

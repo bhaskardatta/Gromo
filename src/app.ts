@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import morgan from 'morgan';
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
@@ -43,6 +44,7 @@ import apiKeysRoutes from './api/apiKeys';
 import whatsappRoutes from './api/whatsapp';
 import authRoutes from './routes/auth';
 import frontendMockRoutes from './routes/frontend-mocks';
+import debugRoutes from './routes/debug';
 
 const app = express();
 
@@ -147,6 +149,11 @@ app.use('/api/v1/voice', generalRateLimit, voiceRoutes);
 app.use('/api/v1/ocr', uploadRateLimit, ocrRoutes);
 app.use('/api/v1/whatsapp', generalRateLimit, whatsappRoutes);
 
+// Debug route - no authentication required
+if (config.isDevelopment()) {
+    app.use('/debug', debugRoutes);
+}
+
 // Protected routes requiring authentication
 app.use('/api/v1/claims', generalRateLimit, authenticateToken, claimRoutes);
 app.use('/api/v1/copilot', generalRateLimit, authenticateToken, copilotRoutes);
@@ -235,6 +242,24 @@ app.delete('/api/admin/cache/invalidate', strictRateLimit, authenticateToken, ad
         message: `Invalidated ${deletedCount} cache entries`,
         deletedCount 
     });
+});
+
+// ====================================
+// STATIC FILE SERVING (FRONTEND)
+// ====================================
+
+// Serve static files from React build
+app.use(express.static(path.join(__dirname, '../client/build')));
+
+// Serve React app for all non-API routes
+app.get('*', (req, res) => {
+    // Don't serve React for API routes
+    if (req.path.startsWith('/api/') || req.path.startsWith('/health') || req.path.startsWith('/docs')) {
+        return res.status(404).json({ success: false, message: 'API endpoint not found' });
+    }
+    
+    // Serve React app
+    res.sendFile(path.join(__dirname, '../client/build/index.html'));
 });
 
 // Frontend routes for E2E testing

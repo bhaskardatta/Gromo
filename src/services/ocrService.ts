@@ -9,17 +9,27 @@ const vision = require('@google-cloud/vision');
 // Initialize Vision client with conditional configuration
 let visionClient: any = null;
 const isProduction = process.env.NODE_ENV === 'production';
+const useMockServices = process.env.MOCK_GOOGLE_SERVICES === 'true';
 
-if (isProduction && config.google?.projectId) {
+// Only initialize real client if not using mocks and credentials are available
+if (!useMockServices && config.getGoogleCloud && config.getGoogleCloud().projectId) {
     try {
-        visionClient = new vision.ImageAnnotatorClient({
-            projectId: config.google.projectId,
-            keyFilename: config.google.credentialsPath
-        });
+        const options: any = {
+            projectId: config.getGoogleCloud().projectId,
+        };
+        
+        // Use key file if available
+        if (config.getGoogleCloud().keyFile) {
+            options.keyFilename = config.getGoogleCloud().keyFile;
+        }
+        
+        visionClient = new vision.ImageAnnotatorClient(options);
         logger.info('Google Vision API client initialized');
     } catch (error) {
         logger.warn('Failed to initialize Google Vision client, falling back to mock:', error);
     }
+} else {
+    logger.info('Using mock OCR service');
 }
 
 interface OCRProcessingOptions {

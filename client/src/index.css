@@ -1,13 +1,24 @@
-body {
+/* index.css - Remove or comment out most styles, as Material UI and CssBaseline will handle them. */
+
+/* body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
+  background-color: #f0f2f5; /* Example global background */
+/* }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
-}
+} */
+
+/* Ensure html and body take up full height if needed for certain layouts, though CssBaseline might handle this. */
+/* html, body, #root {
+  height: 100%;
+} */
+
+/* Any other global resets or base styles should be carefully reviewed.
+   Prefer using Material UI's CssBaseline and theme for consistency. */

@@ -87,30 +87,23 @@ router.get('/', async (req, res, next) => {
         // Debug the filter being used
         logger.info('Claims query filter:', { filter });
 
-        // Query MongoDB - temporarily skip the populate operation since it's causing issues
+        // Query MongoDB
         const claims = await Claim.find(filter)
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
+            .populate('user', 'name phone')
             .lean();
-            
-        logger.debug('Claims query result:', { 
-            filter, 
-            count: claims.length,
-            firstClaim: claims.length > 0 ? {
-                id: claims[0]._id,
-                type: claims[0].type, 
-                status: claims[0].status
-            } : 'No claims found' 
-        });
         
         // Count total for pagination
         const total = await Claim.countDocuments(filter);
         
         logger.info(`Raw claims found: ${claims.length}, Total: ${total}`);
 
-        // Format claims for response - handle the fact that user data is no longer populated
+        // Format claims for response
         const formattedClaims = claims.map(claim => {
+            // Handle potentially undefined user data
+            const user = claim.user as any;
             return {
                 id: claim._id,
                 claimNumber: claim._id.toString().slice(-8).toUpperCase(),
@@ -121,9 +114,8 @@ router.get('/', async (req, res, next) => {
                 description: claim.description || 
                           (claim.claimDetails && claim.claimDetails.description ? 
                           claim.claimDetails.description : 'No description'),
-                // Since we're not populating user data, just use placeholder values for now
-                userName: 'User ID: ' + claim.user,
-                userPhone: 'Unknown'
+                userName: user && user.name ? user.name : 'Unknown',
+                userPhone: user && user.phone ? user.phone : 'Unknown'
             };
         });
         

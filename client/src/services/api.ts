@@ -23,9 +23,10 @@ api.interceptors.request.use(
 // Voice API methods
 export const voiceApi = {
   getSupportedLanguages: () => api.get('/voice/supported-languages'),
-  processVoice: (file: File) => {
+  processVoice: (file: File, language: string) => {
     const formData = new FormData();
     formData.append('audio', file);
+    formData.append('language', language); // Add language to FormData
     return api.post('/voice/process', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
@@ -35,9 +36,7 @@ export const voiceApi = {
 // OCR API methods
 export const ocrApi = {
   getSupportedDocumentTypes: () => api.get('/ocr/supported-document-types'),
-  processDocument: (file: File) => {
-    const formData = new FormData();
-    formData.append('document', file);
+  processDocument: (formData: FormData) => {
     return api.post('/ocr/process', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });

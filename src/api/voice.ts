@@ -124,9 +124,7 @@ router.get('/supported-languages', (req, res) => {
 
     res.json({
         status: 'success',
-        data: {
-            languages: supportedLanguages
-        }
+        data: supportedLanguages.map(lang => lang.code) // Return just the language codes as an array
     });
 });
 

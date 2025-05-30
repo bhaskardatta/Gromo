@@ -3,7 +3,10 @@ import { logger } from '../utils/logger';
 
 export const connectDB = async (): Promise<void> => {
     try {
-        const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/claimassist';
+        // Check for both MONGODB_URI and MONGO_URI to support both naming conventions
+        const mongoURI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/gromo';
+        
+        logger.info(`Connecting to MongoDB: ${mongoURI.split('/').slice(0, -1).join('/')}/[db]`);
         
         await mongoose.connect(mongoURI, {
             // Modern connection options (deprecated options removed)
