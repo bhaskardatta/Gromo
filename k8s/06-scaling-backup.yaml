@@ -1,0 +1,167 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: gromo-app-pdb
+  namespace: gromo
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: gromo-app
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: gromo-app-hpa
+  namespace: gromo
+  labels:
+    app: gromo-app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: gromo-app
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: gromo-limit-range
+  namespace: gromo
+spec:
+  limits:
+  - default:
+      cpu: "500m"
+      memory: "1Gi"
+    defaultRequest:
+      cpu: "250m"
+      memory: "512Mi"
+    type: Container
+  - max:
+      cpu: "2"
+      memory: "4Gi"
+    min:
+      cpu: "100m"
+      memory: "128Mi"
+    type: Container
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: gromo-resource-quota
+  namespace: gromo
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.cpu: "8"
+    limits.memory: 16Gi
+    persistentvolumeclaims: "10"
+    pods: "20"
+    services: "10"
+    secrets: "20"
+    configmaps: "20"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gromo-backup
+  namespace: gromo
+  labels:
+    app: gromo-backup
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: gromo-backup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: mongodb-backup
+            image: mongo:6.0
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+              BACKUP_NAME="gromo_backup_${TIMESTAMP}"
+              
+              echo "Starting MongoDB backup: ${BACKUP_NAME}"
+              
+              mongodump --host mongodb-service:27017 \
+                       --db gromo \
+                       --out /backup/${BACKUP_NAME}
+              
+              tar -czf /backup/${BACKUP_NAME}.tar.gz -C /backup ${BACKUP_NAME}
+              rm -rf /backup/${BACKUP_NAME}
+              
+              echo "Backup completed: ${BACKUP_NAME}.tar.gz"
+              
+              # Clean up old backups (keep last 7 days)
+              find /backup -name "gromo_backup_*.tar.gz" -mtime +7 -delete
+              
+              echo "Backup cleanup completed"
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backup
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "200m"
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: backup-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-pvc
+  namespace: gromo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: ssd

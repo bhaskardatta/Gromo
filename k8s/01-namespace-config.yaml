@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gromo
+  labels:
+    name: gromo
+    environment: production
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gromo-config
+  namespace: gromo
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  LOG_LEVEL: "info"
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  MONGODB_URI: "mongodb://mongodb-service:27017/gromo"
+  RATE_LIMIT_WINDOW_MS: "900000"
+  RATE_LIMIT_MAX_REQUESTS: "100"
+  CACHE_TTL: "3600"
+  SESSION_TIMEOUT: "1800"
+  MAX_FILE_SIZE: "10485760"
+  ALLOWED_FILE_TYPES: "image/jpeg,image/png,image/gif,application/pdf"
+  BCRYPT_ROUNDS: "12"
+  JWT_EXPIRES_IN: "1h"
+  REFRESH_TOKEN_EXPIRES_IN: "7d"
+  API_KEY_ROTATION_DAYS: "30"
+  FRAUD_SCORE_THRESHOLD: "0.7"
+  AUTO_ESCALATION_THRESHOLD: "0.8"
+  GOOGLE_CLOUD_PROJECT_ID: "gromo-production"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gromo-secrets
+  namespace: gromo
+type: Opaque
+stringData:
+  JWT_SECRET: "your-super-secret-jwt-key-here"
+  REFRESH_TOKEN_SECRET: "your-super-secret-refresh-token-key-here"
+  ENCRYPTION_KEY: "your-32-character-encryption-key-here"
+  API_KEY_SECRET: "your-api-key-secret-here"
+  TWILIO_ACCOUNT_SID: "your-twilio-account-sid"
+  TWILIO_AUTH_TOKEN: "your-twilio-auth-token"
+  TWILIO_PHONE_NUMBER: "your-twilio-phone-number"
+  GOOGLE_APPLICATION_CREDENTIALS: |
+    {
+      "type": "service_account",
+      "project_id": "your-project-id",
+      "private_key_id": "your-private-key-id",
+      "private_key": "-----BEGIN PRIVATE KEY-----\nyour-private-key\n-----END PRIVATE KEY-----\n",
+      "client_email": "your-service-account@your-project.iam.gserviceaccount.com",
+      "client_id": "your-client-id",
+      "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+      "token_uri": "https://oauth2.googleapis.com/token",
+      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+      "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/your-service-account%40your-project.iam.gserviceaccount.com"
+    }

@@ -1,0 +1,153 @@
+# Enhanced Load Testing Configuration for Gromo
+# Tests various scenarios including authentication, claims processing, voice transcription, and OCR
+
+config:
+  target: 'http://localhost:3000'
+  phases:
+    # Warm up phase - Start slowly
+    - duration: 60
+      arrivalRate: 1
+      name: "Warm up"
+    # Ramp up phase - Gradually increase load
+    - duration: 180
+      arrivalRate: 2
+      rampTo: 15
+      name: "Ramp up load"
+    # Sustained load phase - Normal operation
+    - duration: 300
+      arrivalRate: 15
+      name: "Sustained load"
+    # Peak load simulation
+    - duration: 120
+      arrivalRate: 25
+      name: "Peak load"
+    # Spike test - Sudden high load
+    - duration: 60
+      arrivalRate: 100
+      name: "Spike test"
+    # Cool down phase
+    - duration: 60
+      arrivalRate: 5
+      name: "Cool down"
+      
+  processor: "./tests/load/processor.js"
+  
+  # Environment variables for load testing
+  variables:
+    testUserEmail: "loadtest@example.com"
+    testUserPassword: "LoadTest@123"
+    testAgentEmail: "loadtest.agent@example.com"
+    testAgentPassword: "LoadTestAgent@123"
+    
+  # Performance thresholds
+  ensure:
+    - http.response_time.p95: 2000  # 95th percentile under 2s
+    - http.response_time.p99: 5000  # 99th percentile under 5s
+    - http.codes.200: 95            # 95% success rate
+    - http.codes.500: 0             # No server errors
+    
+  # Plugins for enhanced metrics
+  plugins:
+    expect: {}
+    metrics-by-endpoint: {}
+    
+scenarios:
+  # User Authentication Flow
+  - name: "User Authentication"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "{{ testUserEmail }}"
+            password: "{{ testUserPassword }}"
+          capture:
+            - json: "$.data.token"
+              as: "authToken"
+          expect:
+            - statusCode: 200
+            - hasProperty: "data.token"
+      
+      # Test token refresh
+      - post:
+          url: "/api/auth/refresh"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  # Voice transcription scenario
+  - name: "Voice Transcription"
+    weight: 30
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "{{ testUserEmail }}"
+            password: "{{ testUserPassword }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - post:
+          url: "/api/voice/transcribe"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          formData:
+            audio: "@tests/load/fixtures/test-audio.mp3"
+            language: "en-IN"
+
+  # OCR processing scenario
+  - name: "OCR Processing"
+    weight: 25
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "{{ testUserEmail }}"
+            password: "{{ testUserPassword }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - post:
+          url: "/api/ocr/extract"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          formData:
+            image: "@tests/load/fixtures/test-document.jpg"
+
+  # Claims API scenario
+  - name: "Claims Management"
+    weight: 15
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "{{ testUserEmail }}"
+            password: "{{ testUserPassword }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - get:
+          url: "/api/claims"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+      - post:
+          url: "/api/claims"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            policyNumber: "POL{{ $randomString() }}"
+            claimType: "accident"
+            description: "Load test claim"
+            incidentDate: "2023-12-01"
+
+  # Health check scenario
+  - name: "Health Checks"
+    weight: 10
+    flow:
+      - get:
+          url: "/health"
+      - get:
+          url: "/api/voice/languages"
+      - get:
+          url: "/api/ocr/formats"

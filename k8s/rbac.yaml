@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gromo-service-account
+  namespace: gromo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: gromo
+  name: gromo-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gromo-role-binding
+  namespace: gromo
+subjects:
+- kind: ServiceAccount
+  name: gromo-service-account
+  namespace: gromo
+roleRef:
+  kind: Role
+  name: gromo-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: NetworkPolicy
+metadata:
+  name: gromo-network-policy
+  namespace: gromo
+spec:
+  podSelector:
+    matchLabels:
+      app: gromo-app
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 3000
+  - from:
+    - podSelector:
+        matchLabels:
+          app: gromo-app
+    ports:
+    - protocol: TCP
+      port: 3000
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: mongodb
+    ports:
+    - protocol: TCP
+      port: 27017
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+    - protocol: UDP
+      port: 53

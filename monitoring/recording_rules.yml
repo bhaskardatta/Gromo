@@ -1,0 +1,88 @@
+# Recording Rules for Gromo Application
+# These rules pre-calculate frequently used metrics to improve dashboard performance
+
+groups:
+  - name: gromo_aggregations
+    interval: 30s
+    rules:
+      # Request rate by endpoint (5m average)
+      - record: gromo:http_request_rate_5m
+        expr: rate(http_requests_total[5m])
+        labels:
+          service: gromo
+
+      # Error rate by endpoint (5m average)
+      - record: gromo:http_error_rate_5m
+        expr: rate(http_requests_total{status=~"5.."}[5m])
+        labels:
+          service: gromo
+
+      # Response time percentiles (5m)
+      - record: gromo:http_request_duration_p50_5m
+        expr: histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))
+        labels:
+          service: gromo
+
+      - record: gromo:http_request_duration_p95_5m
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+        labels:
+          service: gromo
+
+      - record: gromo:http_request_duration_p99_5m
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))
+        labels:
+          service: gromo
+
+  - name: business_metrics
+    interval: 60s
+    rules:
+      # Claims processing rate
+      - record: gromo:claims_processing_rate_1h
+        expr: rate(gromo_claims_processed_total[1h])
+        labels:
+          service: gromo
+
+      # Fraud detection rate
+      - record: gromo:fraud_detection_rate_1h
+        expr: rate(gromo_fraud_detected_total[1h])
+        labels:
+          service: gromo
+
+      # Voice transcription success rate
+      - record: gromo:voice_transcription_success_rate_1h
+        expr: rate(gromo_voice_transcriptions_successful_total[1h]) / rate(gromo_voice_transcriptions_total[1h])
+        labels:
+          service: gromo
+
+      # OCR processing success rate
+      - record: gromo:ocr_processing_success_rate_1h
+        expr: rate(gromo_ocr_extractions_successful_total[1h]) / rate(gromo_ocr_extractions_total[1h])
+        labels:
+          service: gromo
+
+  - name: infrastructure_aggregations
+    interval: 30s
+    rules:
+      # Database connection pool utilization
+      - record: gromo:db_connection_pool_utilization
+        expr: mongodb_connections_current / mongodb_connections_available
+        labels:
+          service: gromo
+
+      # Redis memory utilization
+      - record: gromo:redis_memory_utilization
+        expr: redis_memory_used_bytes / redis_memory_max_bytes
+        labels:
+          service: gromo
+
+      # CPU utilization by container
+      - record: gromo:cpu_utilization_5m
+        expr: rate(container_cpu_usage_seconds_total{name=~"gromo.*"}[5m]) * 100
+        labels:
+          service: gromo
+
+      # Memory utilization by container
+      - record: gromo:memory_utilization
+        expr: (container_memory_usage_bytes{name=~"gromo.*"} / container_spec_memory_limit_bytes) * 100
+        labels:
+          service: gromo

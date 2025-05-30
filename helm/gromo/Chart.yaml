@@ -1,0 +1,27 @@
+apiVersion: v2
+name: gromo
+description: Gromo Insurance Claim Processing Application Helm Chart
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - insurance
+  - claims
+  - ai
+  - ocr
+  - voice-processing
+home: https://github.com/yourusername/gromo
+sources:
+  - https://github.com/yourusername/gromo
+maintainers:
+  - name: Gromo Team
+    email: team@gromo.com
+dependencies:
+  - name: mongodb
+    version: 13.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: mongodb.enabled
+  - name: redis
+    version: 17.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

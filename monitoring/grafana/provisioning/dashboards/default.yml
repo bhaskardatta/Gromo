@@ -1,0 +1,15 @@
+import:
+  path: dashboards
+  orgId: 1
+  type: file
+  updateIntervalSeconds: 10
+  options:
+    path: /var/lib/grafana/dashboards
+    foldersFromFilesStructure: true
+
+prometheus:
+  url: http://prometheus:9090
+  name: Prometheus
+  type: prometheus
+  access: proxy
+  is_default: true

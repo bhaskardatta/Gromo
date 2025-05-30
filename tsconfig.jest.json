@@ -1,0 +1,30 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "./dist-tests",
+    "declaration": false,
+    "declarationMap": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "strict": false,
+    "types": ["node", "jest"],
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/**/*",
+    "tests/**/*.ts",
+    "tests/jest.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "dist-tests",
+    "cypress",
+    "cypress/**/*",
+    "**/cypress/**/*",
+    "tests/e2e/**/*",
+    "**/*.cy.ts",
+    "**/*.cypress.ts"
+  ]
+}

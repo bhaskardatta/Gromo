@@ -1,0 +1,247 @@
+# Security Configuration for Gromo Application
+# This file contains security hardening configurations and policies
+
+security:
+  # Authentication and Authorization
+  auth:
+    # JWT Configuration
+    jwt:
+      algorithm: "HS256"
+      issuer: "gromo-app"
+      audience: "gromo-users"
+      accessTokenExpiry: "15m"
+      refreshTokenExpiry: "7d"
+      maxRefreshTokens: 5 # Per user
+      
+    # Password Policy
+    password:
+      minLength: 8
+      requireUppercase: true
+      requireLowercase: true
+      requireNumbers: true
+      requireSpecialChars: true
+      maxAge: 90 # days
+      preventReuse: 12 # last 12 passwords
+      
+    # Account Lockout
+    lockout:
+      maxAttempts: 5
+      lockoutDuration: 30 # minutes
+      resetAfter: 24 # hours
+      
+    # Session Management
+    session:
+      secure: true # HTTPS only
+      httpOnly: true
+      sameSite: "strict"
+      maxAge: 24 # hours
+      
+  # Rate Limiting Configuration
+  rateLimiting:
+    # Default rate limits
+    default:
+      windowMs: 15 * 60 * 1000 # 15 minutes
+      max: 100 # requests per window
+      
+    # Authentication endpoints
+    auth:
+      login:
+        windowMs: 15 * 60 * 1000 # 15 minutes
+        max: 5 # attempts per window
+      register:
+        windowMs: 60 * 60 * 1000 # 1 hour
+        max: 3 # registrations per window
+        
+    # API endpoints
+    api:
+      voice:
+        windowMs: 60 * 1000 # 1 minute
+        max: 10 # transcriptions per minute
+      ocr:
+        windowMs: 60 * 1000 # 1 minute
+        max: 20 # extractions per minute
+      claims:
+        windowMs: 60 * 1000 # 1 minute
+        max: 30 # claim operations per minute
+        
+  # File Upload Security
+  fileUpload:
+    # Allowed file types
+    allowedTypes:
+      audio: [".mp3", ".wav", ".m4a", ".aac", ".ogg", ".webm"]
+      image: [".jpg", ".jpeg", ".png", ".pdf", ".tiff", ".bmp"]
+      document: [".pdf", ".doc", ".docx", ".txt"]
+      
+    # File size limits (in bytes)
+    maxSize:
+      audio: 50 * 1024 * 1024 # 50MB
+      image: 10 * 1024 * 1024 # 10MB
+      document: 20 * 1024 * 1024 # 20MB
+      
+    # Virus scanning (if ClamAV is available)
+    virusScanning:
+      enabled: true
+      quarantinePath: "/tmp/quarantine"
+      
+    # File validation
+    validation:
+      checkMimeType: true
+      checkFileSignature: true
+      allowExecutables: false
+      
+  # Input Validation and Sanitization
+  validation:
+    # XSS Protection
+    xss:
+      enabled: true
+      whitelist: [] # No HTML allowed by default
+      
+    # SQL Injection Protection
+    sqlInjection:
+      enabled: true
+      
+    # NoSQL Injection Protection
+    nosqlInjection:
+      enabled: true
+      
+    # LDAP Injection Protection
+    ldapInjection:
+      enabled: true
+      
+  # CORS Configuration
+  cors:
+    enabled: true
+    credentials: true
+    optionsSuccessStatus: 200
+    # origins will be set from environment variables
+    
+  # Content Security Policy
+  csp:
+    enabled: true
+    directives:
+      defaultSrc: ["'self'"]
+      scriptSrc: ["'self'", "'unsafe-inline'"]
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"]
+      fontSrc: ["'self'", "https://fonts.gstatic.com"]
+      imgSrc: ["'self'", "data:", "https:"]
+      connectSrc: ["'self'"]
+      mediaSrc: ["'self'"]
+      objectSrc: ["'none'"]
+      frameSrc: ["'none'"]
+      workerSrc: ["'self'"]
+      upgradeInsecureRequests: true
+      
+  # Security Headers
+  headers:
+    # HSTS (HTTP Strict Transport Security)
+    hsts:
+      enabled: true
+      maxAge: 31536000 # 1 year
+      includeSubDomains: true
+      preload: true
+      
+    # X-Frame-Options
+    frameOptions: "DENY"
+    
+    # X-Content-Type-Options
+    noSniff: true
+    
+    # X-XSS-Protection
+    xssFilter: true
+    
+    # Referrer Policy
+    referrerPolicy: "strict-origin-when-cross-origin"
+    
+    # Permissions Policy
+    permissionsPolicy:
+      camera: []
+      microphone: []
+      geolocation: []
+      
+  # API Security
+  api:
+    # API Key Authentication
+    apiKeys:
+      enabled: true
+      headerName: "X-API-Key"
+      
+    # Request signing (HMAC)
+    requestSigning:
+      enabled: false # Enable for high-security APIs
+      algorithm: "sha256"
+      
+    # API versioning
+    versioning:
+      enabled: true
+      header: "API-Version"
+      defaultVersion: "v1"
+      
+  # Logging and Monitoring
+  logging:
+    # Security event logging
+    securityEvents:
+      enabled: true
+      logLevel: "warn"
+      includeRequestBody: false # For privacy
+      
+    # Audit logging
+    audit:
+      enabled: true
+      logLevel: "info"
+      retentionDays: 90
+      
+    # Failed authentication attempts
+    failedAuth:
+      enabled: true
+      threshold: 5 # Log after 5 failed attempts
+      
+  # Data Protection
+  dataProtection:
+    # Encryption at rest
+    encryption:
+      enabled: true
+      algorithm: "aes-256-gcm"
+      
+    # PII (Personally Identifiable Information) protection
+    pii:
+      enabled: true
+      hashingSalt: "gromo-pii-salt" # Will be overridden by env var
+      
+    # Data retention
+    retention:
+      userSessions: 30 # days
+      auditLogs: 365 # days
+      claimData: 2555 # days (7 years for insurance)
+      
+  # Third-party Services Security
+  thirdParty:
+    # Google Cloud Services
+    googleCloud:
+      validateCredentials: true
+      restrictAPIs: ["speech", "vision"] # Only allow specific APIs
+      
+    # Twilio
+    twilio:
+      validateWebhooks: true
+      
+# Security Monitoring Alerts
+alerts:
+  # Failed authentication attempts
+  - name: "HighFailedAuthAttempts"
+    condition: "failed_auth_attempts > 10"
+    severity: "warning"
+    
+  # Unusual API usage patterns
+  - name: "UnusualAPIUsage"
+    condition: "api_requests_per_minute > 1000"
+    severity: "critical"
+    
+  # File upload anomalies
+  - name: "SuspiciousFileUploads"
+    condition: "large_file_uploads > 5"
+    severity: "warning"
+    
+  # Rate limit breaches
+  - name: "RateLimitBreaches"
+    condition: "rate_limit_breaches > 5"
+    severity: "warning"

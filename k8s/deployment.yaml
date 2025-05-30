@@ -1,0 +1,144 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gromo-app
+  namespace: gromo
+  labels:
+    app: gromo-app
+    version: v1
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: gromo-app
+  template:
+    metadata:
+      labels:
+        app: gromo-app
+        version: v1
+    spec:
+      containers:
+      - name: gromo-app
+        image: gromo:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: gromo-config
+              key: NODE_ENV
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: gromo-config
+              key: PORT
+        - name: MONGODB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: gromo-config
+              key: MONGODB_HOST
+        - name: MONGODB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: gromo-config
+              key: MONGODB_PORT
+        - name: MONGODB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: gromo-config
+              key: MONGODB_DATABASE
+        - name: MONGODB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: gromo-secrets
+              key: MONGODB_USERNAME
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: gromo-secrets
+              key: MONGODB_PASSWORD
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: gromo-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: gromo-config
+              key: REDIS_PORT
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: gromo-secrets
+              key: REDIS_PASSWORD
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: gromo-secrets
+              key: JWT_SECRET
+        - name: TWILIO_ACCOUNT_SID
+          valueFrom:
+            secretKeyRef:
+              name: gromo-secrets
+              key: TWILIO_ACCOUNT_SID
+        - name: TWILIO_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gromo-secrets
+              key: TWILIO_AUTH_TOKEN
+        - name: TWILIO_PHONE_NUMBER
+          valueFrom:
+            secretKeyRef:
+              name: gromo-secrets
+              key: TWILIO_PHONE_NUMBER
+        - name: TWILIO_WHATSAPP_NUMBER
+          valueFrom:
+            secretKeyRef:
+              name: gromo-secrets
+              key: TWILIO_WHATSAPP_NUMBER
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          valueFrom:
+            secretKeyRef:
+              name: gromo-secrets
+              key: GOOGLE_APPLICATION_CREDENTIALS
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: google-credentials
+          mountPath: /app/credentials
+          readOnly: true
+      volumes:
+      - name: google-credentials
+        secret:
+          secretName: google-credentials
+      restartPolicy: Always

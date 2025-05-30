@@ -1,0 +1,210 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gromo-app
+  namespace: gromo
+  labels:
+    app: gromo-app
+    tier: application
+    version: v1
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: gromo-app
+  template:
+    metadata:
+      labels:
+        app: gromo-app
+        tier: application
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: gromo-app
+        image: gromo:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: gromo-config
+              key: NODE_ENV
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: gromo-config
+              key: PORT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: gromo-config
+              key: LOG_LEVEL
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: gromo-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: gromo-config
+              key: REDIS_PORT
+        - name: MONGODB_URI
+          valueFrom:
+            configMapKeyRef:
+              name: gromo-config
+              key: MONGODB_URI
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: gromo-secrets
+              key: JWT_SECRET
+        - name: REFRESH_TOKEN_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: gromo-secrets
+              key: REFRESH_TOKEN_SECRET
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: gromo-secrets
+              key: ENCRYPTION_KEY
+        - name: API_KEY_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: gromo-secrets
+              key: API_KEY_SECRET
+        - name: TWILIO_ACCOUNT_SID
+          valueFrom:
+            secretKeyRef:
+              name: gromo-secrets
+              key: TWILIO_ACCOUNT_SID
+        - name: TWILIO_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gromo-secrets
+              key: TWILIO_AUTH_TOKEN
+        - name: TWILIO_PHONE_NUMBER
+          valueFrom:
+            secretKeyRef:
+              name: gromo-secrets
+              key: TWILIO_PHONE_NUMBER
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: "/etc/gcp/service-account.json"
+        volumeMounts:
+        - name: gcp-credentials
+          mountPath: /etc/gcp
+          readOnly: true
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 30
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: gcp-credentials
+        secret:
+          secretName: gromo-secrets
+          items:
+          - key: GOOGLE_APPLICATION_CREDENTIALS
+            path: service-account.json
+      securityContext:
+        fsGroup: 1000
+      serviceAccountName: gromo-service-account
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gromo-app-service
+  namespace: gromo
+  labels:
+    app: gromo-app
+    tier: application
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  selector:
+    app: gromo-app
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gromo-service-account
+  namespace: gromo
+  labels:
+    app: gromo-app
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: gromo
+  name: gromo-role
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gromo-role-binding
+  namespace: gromo
+subjects:
+- kind: ServiceAccount
+  name: gromo-service-account
+  namespace: gromo
+roleRef:
+  kind: Role
+  name: gromo-role
+  apiGroup: rbac.authorization.k8s.io

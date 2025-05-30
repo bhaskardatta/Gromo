@@ -1,0 +1,104 @@
+version: '3.8'
+
+# Development override for docker-compose.yml
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  # Development version of the app with hot reload
+  gromo-app:
+    build:
+      context: .
+      target: builder
+      args:
+        - NODE_ENV=development
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - MONGODB_URI=mongodb://mongodb:27017/gromo-dev
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    command: npm run dev
+    ports:
+      - "3000:3000"
+      - "9229:9229" # Node.js debugger port
+    restart: "no"
+    healthcheck:
+      interval: 10s
+      timeout: 5s
+      retries: 2
+
+  # MongoDB for development
+  mongodb:
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=dev
+      - MONGO_INITDB_ROOT_PASSWORD=devpassword
+      - MONGO_INITDB_DATABASE=gromo-dev
+    ports:
+      - "27017:27017"
+
+  # Redis for development
+  redis:
+    command: redis-server --requirepass devredispass
+    ports:
+      - "6379:6379"
+
+  # MongoDB Express for database management
+  mongo-express:
+    image: mongo-express:latest
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=dev
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=devpassword
+      - ME_CONFIG_MONGODB_URL=mongodb://dev:devpassword@mongodb:27017/
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=admin
+    depends_on:
+      - mongodb
+    networks:
+      - gromo-network
+    restart: unless-stopped
+
+  # Redis Commander for Redis management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    ports:
+      - "8082:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:devredispass
+    depends_on:
+      - redis
+    networks:
+      - gromo-network
+    restart: unless-stopped
+
+  # Mailhog for email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI
+    networks:
+      - gromo-network
+    restart: unless-stopped
+
+  # Test database for integration tests
+  mongodb-test:
+    image: mongo:6.0
+    ports:
+      - "27018:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=gromo-test
+    volumes:
+      - mongodb_test_data:/data/db
+    networks:
+      - gromo-network
+    restart: unless-stopped
+    command: --quiet
+
+volumes:
+  mongodb_test_data:

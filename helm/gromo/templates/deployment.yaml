@@ -1,0 +1,162 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gromo.fullname" . }}
+  labels:
+    {{- include "gromo.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "gromo.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "gromo.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "gromo.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.config.port }}
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: {{ .Values.config.nodeEnv | quote }}
+            - name: PORT
+              value: {{ .Values.config.port | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.config.logLevel | quote }}
+            - name: MAX_FILE_SIZE
+              value: {{ .Values.config.maxFileSize | quote }}
+            - name: SUPPORTED_FORMATS
+              value: {{ .Values.config.supportedFormats | quote }}
+            - name: TESSERACT_LANG
+              value: {{ .Values.config.tesseractLang | quote }}
+            {{- if .Values.mongodb.enabled }}
+            - name: MONGODB_HOST
+              value: "{{ .Release.Name }}-mongodb"
+            - name: MONGODB_PORT
+              value: "27017"
+            - name: MONGODB_DATABASE
+              value: "gromo"
+            - name: MONGODB_USERNAME
+              value: {{ .Values.mongodb.auth.rootUser | quote }}
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-mongodb
+                  key: mongodb-root-password
+            {{- else if .Values.externalMongodb.enabled }}
+            - name: MONGODB_HOST
+              value: {{ .Values.externalMongodb.host | quote }}
+            - name: MONGODB_PORT
+              value: {{ .Values.externalMongodb.port | quote }}
+            - name: MONGODB_DATABASE
+              value: {{ .Values.externalMongodb.database | quote }}
+            - name: MONGODB_USERNAME
+              value: {{ .Values.externalMongodb.username | quote }}
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gromo.fullname" . }}-secrets
+                  key: mongodb-password
+            {{- end }}
+            {{- if .Values.redis.enabled }}
+            - name: REDIS_HOST
+              value: "{{ .Release.Name }}-redis"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-redis
+                  key: redis-password
+            {{- else if .Values.externalRedis.enabled }}
+            - name: REDIS_HOST
+              value: {{ .Values.externalRedis.host | quote }}
+            - name: REDIS_PORT
+              value: {{ .Values.externalRedis.port | quote }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gromo.fullname" . }}-secrets
+                  key: redis-password
+            {{- end }}
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gromo.fullname" . }}-secrets
+                  key: jwt-secret
+            - name: TWILIO_ACCOUNT_SID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gromo.fullname" . }}-secrets
+                  key: twilio-account-sid
+            - name: TWILIO_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gromo.fullname" . }}-secrets
+                  key: twilio-auth-token
+            - name: TWILIO_PHONE_NUMBER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gromo.fullname" . }}-secrets
+                  key: twilio-phone-number
+            - name: TWILIO_WHATSAPP_NUMBER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gromo.fullname" . }}-secrets
+                  key: twilio-whatsapp-number
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/app/credentials/google-credentials.json"
+          {{- if .Values.healthCheck.enabled }}
+          livenessProbe:
+            {{- toYaml .Values.healthCheck.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.healthCheck.readinessProbe | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: google-credentials
+              mountPath: /app/credentials
+              readOnly: true
+      volumes:
+        - name: google-credentials
+          secret:
+            secretName: {{ include "gromo.fullname" . }}-google-credentials
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
